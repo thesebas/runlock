@@ -11,10 +11,12 @@ runlock <options>
     2 - other error
 
 Options:
-  -a, --action <arg>      lock or unlock
+  -a, --action <arg>      lock or unlock [default: lock]
   -l, --lockname <arg>    lock name
-  -n, --count <arg>       how many locks can be aquired
-  -h, --help
+  -n, --count <arg>       how many locks can be acquired [default: 1]
+  -c, --config <arg>      path to file with params in .ini format [default: /etc/runlock/config.ini]
+  -v, --verbose           verbose mode
+  -h, --help              show help
 ```
 
 ## How to install
