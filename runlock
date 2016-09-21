@@ -1,0 +1,109 @@
+#!/usr/bin/php
+<?php
+
+use Ulrichsg\Getopt\Getopt;
+use Ulrichsg\Getopt\Option;
+
+require_once __DIR__ . '/vendor/autoload.php';
+
+
+$getopt = new Getopt([
+    (new Option('a', 'action', Getopt::REQUIRED_ARGUMENT))->setDescription('lock or unlock'),
+    (new Option('l', 'lockname', Getopt::REQUIRED_ARGUMENT))->setDescription('lock name'),
+    (new Option('n', 'count', Getopt::REQUIRED_ARGUMENT))->setDescription('how many locks can be aquired'),
+//    (new Option('c', 'config', Getopt::REQUIRED_ARGUMENT))->setDescription('path to file with params in JSON format'),
+    new Option('h', 'help'),
+
+]);
+
+function usage($msg, $exitcode = 0) {
+
+    global $getopt;
+    fprintf(STDERR, "error: $msg\n");
+
+    fprintf(STDERR, $getopt->getHelpText());
+
+    die($exitcode);
+}
+
+$banner = <<<BANNER
+%s <options>
+    acquire/free lock
+    
+    exit codes:
+    0 - lock acquired
+    1 - failed acquiring lock
+    2 - other error
+BANNER;
+
+$getopt->setBanner($banner . PHP_EOL . PHP_EOL);
+
+try {
+    $getopt->parse();
+} catch (UnexpectedValueException $e) {
+    usage($e->getMessage(), 2);
+}
+
+$action = $getopt['action'] or usage('missing action', 2);
+$lockname = $getopt['lockname'] or usage('missing lockname', 2);
+$count = $getopt['count'] or usage('missing count', 2);
+$count = intval($count);
+
+$config = parse_ini_file('/etc/runlock/config.ini');
+
+$mongo = new \MongoDB\Client($config['mongo']['host']);
+
+
+$dbName = $config['mongo']['dbName'];
+$collectionName = $config['mongo']['collectionName'];
+
+$locks = $mongo->selectCollection($dbName, $collectionName);
+
+$lock = function ($name, $count = 1) use ($locks) {
+    $filter = [
+        '_id' => $name,
+        'count' => ['$lt' => intval($count)]
+    ];
+    $update = [
+        '$inc' => ['count' => 1]
+    ];
+    $opts = ['upsert' => true];
+    try {
+        $updateResult = $locks->updateOne($filter, $update, $opts);
+        return $updateResult->getUpsertedCount() > 0 || $updateResult->getModifiedCount() > 0;
+    } catch (\Exception $e) {
+        return false;
+    }
+};
+
+
+$unlock = function ($name) use ($locks) {
+    $filter = [
+        '_id' => $name,
+        'count' => ['$gt' => 0]
+    ];
+    $update = [
+        '$inc' => ['count' => -1]
+    ];
+
+    $updateResult = $locks->updateOne($filter, $update);
+
+    return $updateResult->getModifiedCount() > 0;
+};
+
+
+switch ($action) {
+    default:
+    case 'lock':
+        $res = $lock($lockname, $count);
+        break;
+    case 'unlock':
+        $res = $unlock($lockname, $count);
+        break;
+}
+
+if (!$res) {
+    exit(1);
+}
+
+exit(0);
