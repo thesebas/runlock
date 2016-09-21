@@ -15,7 +15,7 @@ $getopt = new Getopt([
         ->setDescription('lock name'),
     (new Option('n', 'count', Getopt::REQUIRED_ARGUMENT))
         ->setDefaultValue(1)
-        ->setDescription('how many locks can be aquired [default: 1]'),
+        ->setDescription('how many locks can be acquired [default: 1]'),
     (new Option('c', 'config', Getopt::REQUIRED_ARGUMENT))
         ->setDefaultValue('/etc/runlock/config.ini')
         ->setDescription('path to file with params in .ini format [default: /etc/runlock/config.ini]'),
