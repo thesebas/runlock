@@ -1,6 +1,7 @@
 {
   "name": "thesebas/runlock",
   "type": "library",
+  "license": "MIT",
   "authors": [
     {
       "name": "thesebas",

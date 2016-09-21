@@ -8,18 +8,33 @@ require_once __DIR__ . '/vendor/autoload.php';
 
 
 $getopt = new Getopt([
-    (new Option('a', 'action', Getopt::REQUIRED_ARGUMENT))->setDescription('lock or unlock'),
-    (new Option('l', 'lockname', Getopt::REQUIRED_ARGUMENT))->setDescription('lock name'),
-    (new Option('n', 'count', Getopt::REQUIRED_ARGUMENT))->setDescription('how many locks can be aquired'),
-//    (new Option('c', 'config', Getopt::REQUIRED_ARGUMENT))->setDescription('path to file with params in JSON format'),
-    new Option('h', 'help'),
-
+    (new Option('a', 'action', Getopt::REQUIRED_ARGUMENT))
+        ->setDefaultValue("lock")
+        ->setDescription('lock or unlock [default: lock]'),
+    (new Option('l', 'lockname', Getopt::REQUIRED_ARGUMENT))
+        ->setDescription('lock name'),
+    (new Option('n', 'count', Getopt::REQUIRED_ARGUMENT))
+        ->setDefaultValue(1)
+        ->setDescription('how many locks can be aquired [default: 1]'),
+    (new Option('c', 'config', Getopt::REQUIRED_ARGUMENT))
+        ->setDefaultValue('/etc/runlock/config.ini')
+        ->setDescription('path to file with params in .ini format [default: /etc/runlock/config.ini]'),
+    (new Option('v', 'verbose', Getopt::NO_ARGUMENT))
+        ->setDescription('verbose mode'),
+    (new Option('h', 'help'))
+        ->setDescription("show help"),
 ]);
 
-function usage($msg, $exitcode = 0) {
+function dump($vars, $label = "vars") {
+    fprintf(STDERR, "%s:\n%s\n", $label, var_export($vars, true));
+}
+
+function usage($msg = null, $exitcode = 0) {
 
     global $getopt;
-    fprintf(STDERR, "error: $msg\n");
+    if (!is_null($msg)) {
+        fprintf(STDERR, "error: $msg\n");
+    }
 
     fprintf(STDERR, $getopt->getHelpText());
 
@@ -44,12 +59,28 @@ try {
     usage($e->getMessage(), 2);
 }
 
-$action = $getopt['action'] or usage('missing action', 2);
+$getopt['help'] and usage();
+
+$verbose = $getopt['verbose'] ? true : false;
+$action = @$getopt['action'] or usage("missing action", 2);
 $lockname = $getopt['lockname'] or usage('missing lockname', 2);
+$configfile = $getopt['config'] or usage('missing lockname', 2);
 $count = $getopt['count'] or usage('missing count', 2);
 $count = intval($count);
 
-$config = parse_ini_file('/etc/runlock/config.ini');
+$verbose and dump([
+    'verbose' => $verbose,
+    'action' => $action,
+    'lockname' => $lockname,
+    'count' => $count,
+    'configfile' => $configfile
+]);
+
+file_exists($configfile) or usage("config file [$configfile] not ofund", 2);
+
+$config = parse_ini_file($configfile);
+
+$verbose and dump($config);
 
 $mongo = new \MongoDB\Client($config['mongo']['host']);
 
