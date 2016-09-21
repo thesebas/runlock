@@ -18,4 +18,4 @@ Options:
 ```
 
 ## How to install
-`composer global install thesebas/runlock`
+`composer global require thesebas/runlock:dev-master`
