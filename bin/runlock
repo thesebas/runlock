@@ -111,7 +111,7 @@ switch ($action) {
         $res = $lock->lock($lockname, $count);
         break;
     case 'unlock':
-        $res = $lock->unlock($lockname, $count);
+        $res = $lock->unlock($lockname);
         break;
 }
 
