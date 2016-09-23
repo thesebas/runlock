@@ -30,5 +30,5 @@ composer global require thesebas/runlock:dev-master
 In `crontab` 
 
 ```crontab
-*/15 * * * * runlock -l lockname && job_to_do.sh || runlock -a unlock -l lockname
+*/15 * * * * runlock -l lockname && (job_to_do.sh || runlock -a unlock -l lockname)
 ```
