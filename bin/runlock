@@ -25,6 +25,10 @@ $getopt = new Getopt([
     (new Option('n', 'count', Getopt::REQUIRED_ARGUMENT))
         ->setDefaultValue(1)
         ->setDescription('how many locks can be acquired [default: 1]'),
+    (new Option('d', 'delay', Getopt::REQUIRED_ARGUMENT))
+        ->setDescription('delay running script rand(0, n) seconds')
+        ->setDefaultValue(0)
+        ->setValidation('is_numeric'),
     (new Option('c', 'config', Getopt::REQUIRED_ARGUMENT))
         ->setDefaultValue('/etc/runlock/config.ini')
         ->setDescription('path to file with params in .ini format [default: /etc/runlock/config.ini]'),
@@ -70,11 +74,13 @@ try {
 
 $getopt['help'] and usage();
 
-$verbose = $getopt['verbose'] ? true : false;
+$verbose = @$getopt['verbose'] ? true : false;
 $action = @$getopt['action'] or usage("missing action", 2);
 $lockname = $getopt['lockname'] or usage('missing lockname', 2);
 $configfile = $getopt['config'] or usage('missing lockname', 2);
 $count = $getopt['count'] or usage('missing count', 2);
+$delay = @$getopt['delay'];
+$randDelay = $delay ? rand(0, $delay) : false;
 $count = intval($count);
 
 $verbose and dump([
@@ -82,63 +88,30 @@ $verbose and dump([
     'action' => $action,
     'lockname' => $lockname,
     'count' => $count,
+    'delay' => $delay,
+    'randDelay' => $randDelay,
     'configfile' => $configfile
 ]);
 
 file_exists($configfile) or usage("config file [$configfile] not ofund", 2);
 
-$config = parse_ini_file($configfile);
+$config = parse_ini_file($configfile, true);
 
 $verbose and dump($config);
 
-$mongo = new \MongoDB\Client($config['mongo']['host']);
+if ($randDelay) {
+    sleep($randDelay);
+}
 
-
-$dbName = $config['mongo']['dbName'];
-$collectionName = $config['mongo']['collectionName'];
-
-$locks = $mongo->selectCollection($dbName, $collectionName);
-
-$lock = function ($name, $count = 1) use ($locks) {
-    $filter = [
-        '_id' => $name,
-        'count' => ['$lt' => intval($count)]
-    ];
-    $update = [
-        '$inc' => ['count' => 1]
-    ];
-    $opts = ['upsert' => true];
-    try {
-        $updateResult = $locks->updateOne($filter, $update, $opts);
-        return $updateResult->getUpsertedCount() > 0 || $updateResult->getModifiedCount() > 0;
-    } catch (\Exception $e) {
-        return false;
-    }
-};
-
-
-$unlock = function ($name) use ($locks) {
-    $filter = [
-        '_id' => $name,
-        'count' => ['$gt' => 0]
-    ];
-    $update = [
-        '$inc' => ['count' => -1]
-    ];
-
-    $updateResult = $locks->updateOne($filter, $update);
-
-    return $updateResult->getModifiedCount() > 0;
-};
-
+$lock = new \thesebas\runlock\Lock($config);
 
 switch ($action) {
     default:
     case 'lock':
-        $res = $lock($lockname, $count);
+        $res = $lock->lock($lockname, $count);
         break;
     case 'unlock':
-        $res = $unlock($lockname, $count);
+        $res = $lock->unlock($lockname, $count);
         break;
 }
 
