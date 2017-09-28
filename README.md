@@ -11,7 +11,7 @@ runlock <options>
     2 - other error
 
 Options:
-  -a, --action <arg>      lock or unlock [default: lock]
+  -a, --action <arg>      `lock`, `unlock` or `reset` [default: `lock`]
   -l, --lockname <arg>    lock name
   -n, --count <arg>       how many locks can be acquired [default: 1]
   -d, --delay <arg>       delay running script rand(0, n) seconds
