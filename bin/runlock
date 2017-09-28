@@ -53,7 +53,7 @@ function usage($msg = null, $exitcode = 0) {
 
     fprintf(STDERR, $getopt->getHelpText());
 
-    die($exitcode);
+    exit($exitcode);
 }
 
 $banner = <<<BANNER
@@ -99,7 +99,7 @@ file_exists($configfile) or usage("config file [$configfile] not found", 2);
 
 $config = parse_ini_file($configfile, true);
 
-$verbose and dump($config);
+if($verbose) dump($config);
 
 if ($randDelay) {
     sleep($randDelay);
