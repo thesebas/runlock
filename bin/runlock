@@ -21,7 +21,7 @@ require RUNLOCK_COMPOSER_INSTALL;
 $getopt = new Getopt([
     (new Option('a', 'action', Getopt::REQUIRED_ARGUMENT))
         ->setDefaultValue("lock")
-        ->setDescription('lock or unlock [default: lock]'),
+        ->setDescription('`lock`, `unlock` or `reset` [default: `lock`]'),
     (new Option('l', 'lockname', Getopt::REQUIRED_ARGUMENT))
         ->setDescription('lock name'),
     (new Option('n', 'count', Getopt::REQUIRED_ARGUMENT))
@@ -74,7 +74,7 @@ try {
     usage($e->getMessage(), 2);
 }
 
-$getopt['help'] and usage();
+if(@$getopt['help']) usage();
 
 $verbose = @$getopt['verbose'] ? true : false;
 $action = @$getopt['action'] or usage("missing action", 2);
@@ -85,7 +85,7 @@ $delay = @$getopt['delay'];
 $randDelay = $delay ? rand(0, $delay) : false;
 $count = intval($count);
 
-$verbose and dump([
+if($verbose) dump([
     'verbose' => $verbose,
     'action' => $action,
     'lockname' => $lockname,
@@ -95,7 +95,7 @@ $verbose and dump([
     'configfile' => $configfile
 ]);
 
-file_exists($configfile) or usage("config file [$configfile] not ofund", 2);
+file_exists($configfile) or usage("config file [$configfile] not found", 2);
 
 $config = parse_ini_file($configfile, true);
 
@@ -114,6 +114,9 @@ switch ($action) {
         break;
     case 'unlock':
         $res = $lock->unlock($lockname);
+        break;
+    case 'reset':
+        $res = $lock->reset($lockname);
         break;
 }
 

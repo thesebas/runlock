@@ -53,4 +53,19 @@ class Lock {
 
         return $updateResult->getModifiedCount() > 0;
     }
+
+    public function reset($name) {
+        $locks = $this->locks;
+
+        $filter = [
+            '_id' => $name,
+        ];
+        $update = [
+            '$set' => ['count' => 0]
+        ];
+
+        $updateResult = $locks->updateOne($filter, $update);
+
+        return $updateResult->getModifiedCount() > 0;
+    }
 }
